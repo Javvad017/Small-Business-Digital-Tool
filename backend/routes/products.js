@@ -1,35 +1,31 @@
 const express = require('express');
 const Product = require('../models/Product');
-const auth = require('../middleware/auth');
-
+const { auth, adminOnly } = require('../middleware/auth');
 const router = express.Router();
 
-// @route  GET /api/products
-// @desc   Get all products for user
+// GET /api/products  — all products, supports search & stock filter
+// NOTE: both admin and staff (billing) can read products
 router.get('/', auth, async (req, res) => {
   try {
-    const products = await Product.find({ user: req.userId }).sort({ createdAt: -1 });
+    const { search, stock } = req.query;
+    const query = { user: req.userId };
+    if (search) query.name = { $regex: search, $options: 'i' };
+    if (stock === 'low') query.quantity = { $lt: 5, $gt: 0 };
+    if (stock === 'out') query.quantity = 0;
+    if (stock === 'ok')  query.quantity = { $gte: 5 };
+    const products = await Product.find(query)
+      .populate('supplier', 'name phone')
+      .sort({ createdAt: -1 });
     res.json(products);
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
 
-// @route  POST /api/products
-// @desc   Add a new product
+// POST /api/products
 router.post('/', auth, async (req, res) => {
-  const { name, price, quantity, category, description } = req.body;
-
   try {
-    const product = new Product({
-      name,
-      price,
-      quantity,
-      category: category || 'General',
-      description: description || '',
-      user: req.userId
-    });
-
+    const product = new Product({ ...req.body, user: req.userId });
     await product.save();
     res.status(201).json(product);
   } catch (err) {
@@ -37,50 +33,27 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
-// @route  PUT /api/products/:id
-// @desc   Update a product
+// PUT /api/products/:id
 router.put('/:id', auth, async (req, res) => {
-  const { name, price, quantity, category, description } = req.body;
-
   try {
-    const product = await Product.findOne({ _id: req.params.id, user: req.userId });
-    if (!product) {
-      return res.status(404).json({ message: 'Product not found' });
-    }
-
-    product.name = name || product.name;
-    product.price = price !== undefined ? price : product.price;
-    product.quantity = quantity !== undefined ? quantity : product.quantity;
-    product.category = category || product.category;
-    product.description = description !== undefined ? description : product.description;
-
-    await product.save();
+    const product = await Product.findOneAndUpdate(
+      { _id: req.params.id, user: req.userId },
+      req.body,
+      { new: true }
+    );
+    if (!product) return res.status(404).json({ message: 'Product not found' });
     res.json(product);
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
 
-// @route  DELETE /api/products/:id
-// @desc   Delete a product
+// DELETE /api/products/:id
 router.delete('/:id', auth, async (req, res) => {
   try {
     const product = await Product.findOneAndDelete({ _id: req.params.id, user: req.userId });
-    if (!product) {
-      return res.status(404).json({ message: 'Product not found' });
-    }
-    res.json({ message: 'Product deleted successfully' });
-  } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
-  }
-});
-
-// @route  GET /api/products/low-stock
-// @desc   Get low stock products (quantity < 5)
-router.get('/low-stock', auth, async (req, res) => {
-  try {
-    const products = await Product.find({ user: req.userId, quantity: { $lt: 5 } });
-    res.json(products);
+    if (!product) return res.status(404).json({ message: 'Product not found' });
+    res.json({ message: 'Deleted' });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }

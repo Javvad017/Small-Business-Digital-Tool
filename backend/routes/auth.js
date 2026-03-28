@@ -1,80 +1,54 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-
 const router = express.Router();
 
-// @route  POST /api/auth/signup
-// @desc   Register a new user
+const signToken = (user) =>
+  jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
+
+const userPayload = (user) => ({
+  id: user._id, name: user.name, email: user.email,
+  businessName: user.businessName, role: user.role
+});
+
+// POST /api/auth/signup
 router.post('/signup', async (req, res) => {
-  const { name, email, password, businessName } = req.body;
-
+  const { name, email, password, businessName, role } = req.body;
   try {
-    // Check if user exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
+    if (await User.findOne({ email }))
       return res.status(400).json({ message: 'Email already registered' });
-    }
 
-    // Create user
-    const user = new User({ name, email, password, businessName });
+    const user = new User({ name, email, password, businessName,
+      role: role === 'staff' ? 'staff' : 'admin' });
     await user.save();
-
-    // Generate JWT
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-
-    res.status(201).json({
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        businessName: user.businessName
-      }
-    });
+    res.status(201).json({ token: signToken(user), user: userPayload(user) });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
 
-// @route  POST /api/auth/login
-// @desc   Login user
+// POST /api/auth/login
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
-
   try {
-    // Find user
     const user = await User.findOne({ email });
-    if (!user) {
+    if (!user || !(await user.comparePassword(password)))
       return res.status(400).json({ message: 'Invalid email or password' });
-    }
+    res.json({ token: signToken(user), user: userPayload(user) });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
 
-    // Check password
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid email or password' });
-    }
-
-    // Generate JWT
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-
-    res.json({
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        businessName: user.businessName
-      }
-    });
+// POST /api/auth/create-staff  (admin creates staff accounts)
+router.post('/create-staff', async (req, res) => {
+  const { name, email, password, businessName } = req.body;
+  try {
+    if (await User.findOne({ email }))
+      return res.status(400).json({ message: 'Email already registered' });
+    const user = new User({ name, email, password, businessName: businessName || 'Staff', role: 'staff' });
+    await user.save();
+    res.status(201).json({ user: userPayload(user) });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }

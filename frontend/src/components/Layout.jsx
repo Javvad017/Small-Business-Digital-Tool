@@ -1,167 +1,197 @@
 import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import {
-  LayoutDashboard, Package, Receipt, History,
-  Bot, LogOut, Menu, X, Store, ChevronRight, Bell
+  LayoutDashboard, Package, Receipt, History, LogOut,
+  Menu, X, Store, ChevronRight, Truck, ShoppingBag,
+  BarChart3, CreditCard, Sun, Moon, Shield, Zap
 } from 'lucide-react';
 
-const navItems = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/inventory', icon: Package, label: 'Inventory' },
-  { to: '/billing', icon: Receipt, label: 'Billing' },
-  { to: '/history', icon: History, label: 'Order History' },
-  { to: '/ai', icon: Bot, label: 'AI Assistant' },
+const adminNav = [
+  { label: 'Overview', items: [
+    { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/reports',   icon: BarChart3,       label: 'Reports' },
+  ]},
+  { label: 'Operations', items: [
+    { to: '/billing',  icon: Receipt,  label: 'Billing' },
+    { to: '/history',  icon: History,  label: 'Order History' },
+  ]},
+  { label: 'Inventory', items: [
+    { to: '/inventory', icon: Package,     label: 'Products' },
+    { to: '/purchases', icon: ShoppingBag, label: 'Purchases' },
+    { to: '/suppliers', icon: Truck,       label: 'Suppliers' },
+  ]},
+  { label: 'Finance', items: [
+    { to: '/expenses', icon: CreditCard, label: 'Expenses' },
+  ]},
+];
+
+const staffNav = [
+  { label: 'Operations', items: [
+    { to: '/billing', icon: Receipt, label: 'Billing' },
+  ]},
 ];
 
 export default function Layout() {
   const { user, logout } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
+  const isAdmin = user?.role === 'admin';
+  const navGroups = isAdmin ? adminNav : staffNav;
+  const handleLogout = () => { logout(); navigate('/login'); };
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="modal-overlay"
-          style={{ zIndex: 40 }}
           onClick={() => setSidebarOpen(false)}
+          style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.7)', zIndex:40, backdropFilter:'blur(4px)' }}
         />
       )}
 
-      {/* Sidebar */}
+      {/* ─── SIDEBAR ─── */}
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
+
         {/* Logo */}
-        <div style={{ padding: '24px 20px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ padding:'20px 18px 16px', borderBottom:'1px solid var(--border)', flexShrink:0 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:14 }}>
             <div style={{
-              width: 40, height: 40,
-              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-              borderRadius: 12,
-              display: 'flex', alignItems: 'center', justifyContent: 'center'
+              width:38, height:38, borderRadius:12, flexShrink:0,
+              background:'linear-gradient(135deg, var(--neon-green), #059669)',
+              display:'flex', alignItems:'center', justifyContent:'center',
+              boxShadow:'var(--glow-sm-green)'
             }}>
-              <Store size={20} color="white" />
+              <Store size={18} color="#0B0F19" strokeWidth={2.5} />
             </div>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: '#e2e8f0' }}>SmartBiz</div>
-              <div style={{ fontSize: 11, color: '#6366f1', fontWeight: 500 }}>Digital Tool</div>
+              <div style={{ fontSize:15, fontWeight:800, color:'var(--text-primary)', letterSpacing:'-0.02em' }}>SmartBiz</div>
+              <div style={{ fontSize:10, color:'var(--neon-green)', fontWeight:600, letterSpacing:'0.08em', textTransform:'uppercase' }}>Pro Dashboard</div>
             </div>
           </div>
-        </div>
 
-        {/* Business name chip */}
-        <div style={{ padding: '12px 20px' }}>
+          {/* Business chip */}
           <div style={{
-            background: 'rgba(99,102,241,0.1)',
-            border: '1px solid rgba(99,102,241,0.2)',
-            borderRadius: 8,
-            padding: '8px 12px',
-            fontSize: 12,
-            color: '#a5b4fc',
-            fontWeight: 500,
-            display: 'flex', alignItems: 'center', gap: 6
+            background:'rgba(16,185,129,0.07)',
+            border:'1px solid rgba(16,185,129,0.15)',
+            borderRadius:10, padding:'8px 12px',
+            display:'flex', alignItems:'center', gap:8
           }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80' }} />
-            {user?.businessName || 'My Business'}
+            <div style={{ width:7, height:7, borderRadius:'50%', background:'var(--neon-green)', flexShrink:0, boxShadow:'var(--glow-sm-green)' }} />
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontSize:12, color:'var(--text-primary)', fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                {user?.businessName || 'My Business'}
+              </div>
+              <div style={{ fontSize:10, color:'var(--text-muted)', marginTop:1 }}>
+                {isAdmin ? '⚡ Administrator' : '● Staff Member'}
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Navigation */}
-        <nav style={{ padding: '8px 12px', flex: 1 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '8px 4px', marginBottom: 4 }}>
-            Main Menu
-          </div>
-          {navItems.map(({ to, icon: Icon, label }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-              onClick={() => setSidebarOpen(false)}
-            >
-              <Icon size={18} />
-              <span style={{ flex: 1 }}>{label}</span>
-              <ChevronRight size={14} style={{ opacity: 0.4 }} />
-            </NavLink>
+        <nav style={{ padding:'8px 10px', flex:1, overflowY:'auto' }}>
+          {navGroups.map(group => (
+            <div key={group.label}>
+              <div className="nav-section-label">{group.label}</div>
+              {group.items.map(({ to, icon: Icon, label }) => (
+                <NavLink
+                  key={to} to={to}
+                  className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  <Icon size={15} strokeWidth={2} />
+                  <span style={{ flex:1, fontSize:13.5 }}>{label}</span>
+                  <ChevronRight size={12} style={{ opacity:0.25, flexShrink:0 }} />
+                </NavLink>
+              ))}
+            </div>
           ))}
         </nav>
 
-        {/* User / Logout */}
-        <div style={{ padding: '16px 12px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        {/* Bottom: theme + user */}
+        <div style={{ padding:'12px 10px 16px', borderTop:'1px solid var(--border)', flexShrink:0 }}>
+          {/* Theme row */}
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'6px 8px', marginBottom:8 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:7, fontSize:12, color:'var(--text-muted)', fontWeight:500 }}>
+              {isDark ? <Moon size={13}/> : <Sun size={13}/>}
+              {isDark ? 'Dark' : 'Light'}
+            </div>
+            <button className="theme-toggle" onClick={toggleTheme} aria-label="Toggle theme" />
+          </div>
+
+          {/* User card */}
           <div style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            padding: '10px 12px',
-            background: 'rgba(255,255,255,0.04)',
-            borderRadius: 10,
-            marginBottom: 8
+            display:'flex', alignItems:'center', gap:10, padding:'10px 12px',
+            background:'var(--bg-elevated)', borderRadius:12, marginBottom:10,
+            border:'1px solid var(--border)'
           }}>
             <div style={{
-              width: 32, height: 32,
-              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-              borderRadius: '50%',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 13, fontWeight: 700, color: 'white', flexShrink: 0
+              width:32, height:32, borderRadius:'50%', flexShrink:0,
+              background:'linear-gradient(135deg, var(--neon-green), var(--neon-purple))',
+              display:'flex', alignItems:'center', justifyContent:'center',
+              fontSize:13, fontWeight:800, color:'#0B0F19'
             }}>
               {user?.name?.[0]?.toUpperCase() || 'U'}
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontSize:12.5, fontWeight:700, color:'var(--text-primary)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                 {user?.name}
               </div>
-              <div style={{ fontSize: 11, color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {user?.email}
-              </div>
+              <div style={{ fontSize:10.5, color:'var(--text-muted)' }}>{user?.email}</div>
             </div>
           </div>
-          <button className="btn-danger" style={{ width: '100%', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 8 }} onClick={handleLogout}>
-            <LogOut size={14} />
-            Sign Out
+
+          <button
+            onClick={handleLogout}
+            style={{
+              width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:7,
+              padding:'9px 0', borderRadius:10, border:'1px solid rgba(239,68,68,0.2)',
+              background:'rgba(239,68,68,0.08)', color:'#F87171',
+              fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'inherit',
+              transition:'all 0.2s ease'
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background='rgba(239,68,68,0.15)'; e.currentTarget.style.borderColor='rgba(239,68,68,0.35)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background='rgba(239,68,68,0.08)'; e.currentTarget.style.borderColor='rgba(239,68,68,0.2)'; }}
+          >
+            <LogOut size={13} /> Sign Out
           </button>
         </div>
       </aside>
 
-      {/* Main */}
-      <main className="main-content" style={{ flex: 1 }}>
-        {/* Top bar (mobile) */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '16px 20px',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
-          background: 'rgba(15,17,23,0.8)',
-          backdropFilter: 'blur(10px)',
-          position: 'sticky', top: 0, zIndex: 30
-        }}>
+      {/* ─── MAIN CONTENT ─── */}
+      <main className="main-content" style={{ flex:1 }}>
+        {/* Topbar */}
+        <div className="topbar">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-            className="md:hidden"
+            style={{ background:'none', border:'none', color:'var(--text-muted)', cursor:'pointer', padding:4, borderRadius:8, display:'flex' }}
           >
-            {sidebarOpen ? <X size={22} /> : <Menu size={22} />}
+            {sidebarOpen ? <X size={20}/> : <Menu size={20}/>}
           </button>
-          <div style={{ fontSize: 14, color: '#64748b' }} className="hidden md:block">
-            Welcome back, <span style={{ color: '#a5b4fc', fontWeight: 600 }}>{user?.name}</span> 👋
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ flex:1 }}/>
+          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+            {/* Role badge */}
             <div style={{
-              width: 36, height: 36,
-              background: 'rgba(255,255,255,0.06)',
-              borderRadius: '50%',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer', border: '1px solid rgba(255,255,255,0.08)'
+              display:'flex', alignItems:'center', gap:6, padding:'5px 12px',
+              background: isAdmin ? 'rgba(16,185,129,0.08)' : 'rgba(139,92,246,0.08)',
+              border: `1px solid ${isAdmin ? 'rgba(16,185,129,0.2)' : 'rgba(139,92,246,0.2)'}`,
+              borderRadius:20, fontSize:11.5, fontWeight:700,
+              color: isAdmin ? 'var(--neon-green)' : 'var(--text-purple)'
             }}>
-              <Bell size={16} color="#94a3b8" />
+              {isAdmin ? <Zap size={11}/> : <Shield size={11}/>}
+              {isAdmin ? 'Admin' : 'Staff'}
+            </div>
+            <div style={{ fontSize:13, color:'var(--text-muted)' }}>
+              <span style={{ color:'var(--text-primary)', fontWeight:600 }}>{user?.name}</span>
             </div>
           </div>
         </div>
 
-        <div style={{ padding: '0' }}>
-          <Outlet />
-        </div>
+        <Outlet />
       </main>
     </div>
   );
